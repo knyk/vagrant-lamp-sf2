@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # Use single quotes instead of double quotes to make it work with special-character passwords
-PASSWORD='12345678'
-PROJECTFOLDER='myproject'
-
+PASSWORD='symfony'
+PROJECTFOLDER='vagrant'
+sudo hostname "symfony.local"
 # create project folder
 sudo mkdir "/var/www/html/${PROJECTFOLDER}"
 
@@ -13,7 +13,7 @@ sudo apt-get -y upgrade
 
 # install apache 2.5 and php 5.5
 sudo apt-get install -y apache2
-sudo apt-get install -y php5
+sudo apt-get install -y php5 php5-intl
 
 # install mysql and give password to installer
 sudo debconf-set-selections <<< "mysql-server mysql-server/root_password password $PASSWORD"
@@ -30,14 +30,36 @@ sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password $
 sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2"
 sudo apt-get -y install phpmyadmin
 
+sudo php5enmod mcrypt
+
 # setup hosts file
 VHOST=$(cat <<EOF
 <VirtualHost *:80>
-    DocumentRoot "/var/www/html/${PROJECTFOLDER}"
-    <Directory "/var/www/html/${PROJECTFOLDER}">
-        AllowOverride All
-        Require all granted
+    ServerName symfony.local
+    ServerAlias www.symfony.local
+
+    DocumentRoot "/var/www/html/${PROJECTFOLDER}/web"
+    <Directory "/var/www/html/${PROJECTFOLDER}/web">
+        AllowOverride None
+        Order Allow,Deny
+        Allow from All
+
+        <IfModule mod_rewrite.c>
+            Options -MultiViews
+            RewriteEngine On
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteRule ^(.*)$ app.php [QSA,L]
+        </IfModule>
     </Directory>
+
+    # uncomment the following lines if you install assets as symlinks
+    # or run into problems when compiling LESS/Sass/CoffeScript assets
+    # <Directory /var/www/project>
+    #     Options FollowSymlinks
+    # </Directory>
+
+    ErrorLog /var/log/apache2/symfony.log
+    CustomLog /var/log/apache2/symfony.log combined
 </VirtualHost>
 EOF
 )
