@@ -63,6 +63,7 @@ VHOST=$(cat <<EOF
 </VirtualHost>
 EOF
 )
+
 echo "${VHOST}" > /etc/apache2/sites-available/000-default.conf
 
 # enable mod_rewrite
